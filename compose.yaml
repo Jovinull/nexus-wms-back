@@ -2,8 +2,13 @@ services:
   postgres:
     image: 'postgres:latest'
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      - 'POSTGRES_DB=nexus_wms'
+      - 'POSTGRES_PASSWORD=nexus123'
+      - 'POSTGRES_USER=nexus'
     ports:
-      - '5432'
+      - '5432:5432'
+    volumes:
+      - nexus_pgdata:/var/lib/postgresql/data
+
+volumes:
+  nexus_pgdata:

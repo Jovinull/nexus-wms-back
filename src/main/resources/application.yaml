@@ -4,7 +4,7 @@ spring:
 
   # --- Database (PostgreSQL via Docker Compose) ---
   datasource:
-    url: jdbc:postgresql://localhost:5432/nexus_wms
+    url: jdbc:postgresql://localhost:5433/nexus_wms
     username: nexus
     password: nexus123
     driver-class-name: org.postgresql.Driver
@@ -12,7 +12,7 @@ spring:
   # --- JPA / Hibernate ---
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     open-in-view: false
     properties:
       hibernate:

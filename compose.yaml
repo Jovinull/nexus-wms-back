@@ -1,12 +1,12 @@
 services:
   postgres:
-    image: 'postgres:latest'
+    image: 'postgres:17'
     environment:
-      - 'POSTGRES_DB=nexus_wms'
-      - 'POSTGRES_PASSWORD=nexus123'
-      - 'POSTGRES_USER=nexus'
+      - POSTGRES_DB=nexus_wms
+      - POSTGRES_PASSWORD=nexus123
+      - POSTGRES_USER=nexus
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - nexus_pgdata:/var/lib/postgresql/data
 

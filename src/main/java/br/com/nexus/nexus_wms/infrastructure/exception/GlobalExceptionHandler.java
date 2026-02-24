@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.jspecify.annotations.Nullable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -58,6 +59,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         // ---- Bean Validation (@Valid) --------------------------------------------
 
         @Override
+        @Nullable
         protected ResponseEntity<Object> handleMethodArgumentNotValid(
                         MethodArgumentNotValidException ex,
                         HttpHeaders headers,

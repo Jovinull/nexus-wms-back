@@ -24,91 +24,87 @@ import java.util.Map;
 /**
  * Global exception handler producing RFC 7807 Problem Detail responses.
  *
- * <p>Handles:
+ * <p>
+ * Handles:
  * <ul>
- *   <li><b>Optimistic Lock conflicts</b> → 409 Conflict</li>
- *   <li><b>Bean Validation failures</b> → 422 Unprocessable Entity</li>
- *   <li><b>Data integrity violations</b> → 409 Conflict</li>
- *   <li><b>Uncaught exceptions</b> → 500 Internal Server Error</li>
+ * <li><b>Optimistic Lock conflicts</b> → 409 Conflict</li>
+ * <li><b>Bean Validation failures</b> → 422 Unprocessable Entity</li>
+ * <li><b>Data integrity violations</b> → 409 Conflict</li>
+ * <li><b>Uncaught exceptions</b> → 500 Internal Server Error</li>
  * </ul>
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-    private static final String TIMESTAMP_KEY = "timestamp";
+        private static final String TIMESTAMP_KEY = "timestamp";
 
+        // ---- Optimistic Locking (JPA / Hibernate) --------------------------------
 
-    // ---- Optimistic Locking (JPA / Hibernate) --------------------------------
-
-    @ExceptionHandler({
-            OptimisticLockException.class,
-            StaleObjectStateException.class,
-            ObjectOptimisticLockingFailureException.class
-    })
-    public ProblemDetail handleOptimisticLock(Exception ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.CONFLICT,
-                "O recurso foi modificado por outro usuário. Atualize os dados e tente novamente."
-        );
-        problem.setTitle("Conflito de Concorrência");
-        problem.setType(URI.create("https://nexus-wms.com/errors/optimistic-lock"));
-        problem.setProperty(TIMESTAMP_KEY, Instant.now());
-        return problem;
-    }
-
-    // ---- Bean Validation (@Valid) --------------------------------------------
-
-    @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex,
-            HttpHeaders headers,
-            HttpStatusCode status,
-            WebRequest request) {
-
-        Map<String, String> fieldErrors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(error.getField(), error.getDefaultMessage());
+        @ExceptionHandler({
+                        OptimisticLockException.class,
+                        StaleObjectStateException.class,
+                        ObjectOptimisticLockingFailureException.class
+        })
+        public ProblemDetail handleOptimisticLock(Exception ex) {
+                ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                                HttpStatus.CONFLICT,
+                                "O recurso foi modificado por outro usuário. Atualize os dados e tente novamente.");
+                problem.setTitle("Conflito de Concorrência");
+                problem.setType(URI.create("https://nexus-wms.com/errors/optimistic-lock"));
+                problem.setProperty(TIMESTAMP_KEY, Instant.now());
+                return problem;
         }
 
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.UNPROCESSABLE_ENTITY,
-                "A validação falhou para um ou mais campos."
-        );
-        problem.setTitle("Erro de Validação");
-        problem.setType(URI.create("https://nexus-wms.com/errors/validation"));
-        problem.setProperty(TIMESTAMP_KEY, Instant.now());
-        problem.setProperty("fieldErrors", fieldErrors);
+        // ---- Bean Validation (@Valid) --------------------------------------------
 
-        return ResponseEntity
-                .status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(problem);
-    }
+        @Override
+        protected ResponseEntity<Object> handleMethodArgumentNotValid(
+                        MethodArgumentNotValidException ex,
+                        HttpHeaders headers,
+                        HttpStatusCode status,
+                        WebRequest request) {
 
-    // ---- Data Integrity (unique constraint violations, FK errors) ------------
+                Map<String, String> fieldErrors = new HashMap<>();
+                for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+                        fieldErrors.put(error.getField(), error.getDefaultMessage());
+                }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.CONFLICT,
-                "Operação viola uma restrição de integridade do banco de dados."
-        );
-        problem.setTitle("Violação de Integridade");
-        problem.setType(URI.create("https://nexus-wms.com/errors/data-integrity"));
-        problem.setProperty(TIMESTAMP_KEY, Instant.now());
-        return problem;
-    }
+                ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                                HttpStatus.UNPROCESSABLE_CONTENT,
+                                "A validação falhou para um ou mais campos.");
+                problem.setTitle("Erro de Validação");
+                problem.setType(URI.create("https://nexus-wms.com/errors/validation"));
+                problem.setProperty(TIMESTAMP_KEY, Instant.now());
+                problem.setProperty("fieldErrors", fieldErrors);
 
-    // ---- Catch-all for unexpected errors ------------------------------------
+                return ResponseEntity
+                                .status(HttpStatus.UNPROCESSABLE_CONTENT)
+                                .body(problem);
+        }
 
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleGeneric(Exception ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Ocorreu um erro interno inesperado. Tente novamente mais tarde."
-        );
-        problem.setTitle("Erro Interno");
-        problem.setType(URI.create("https://nexus-wms.com/errors/internal"));
-        problem.setProperty(TIMESTAMP_KEY, Instant.now());
-        return problem;
-    }
+        // ---- Data Integrity (unique constraint violations, FK errors) ------------
+
+        @ExceptionHandler(DataIntegrityViolationException.class)
+        public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
+                ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                                HttpStatus.CONFLICT,
+                                "Operação viola uma restrição de integridade do banco de dados.");
+                problem.setTitle("Violação de Integridade");
+                problem.setType(URI.create("https://nexus-wms.com/errors/data-integrity"));
+                problem.setProperty(TIMESTAMP_KEY, Instant.now());
+                return problem;
+        }
+
+        // ---- Catch-all for unexpected errors ------------------------------------
+
+        @ExceptionHandler(Exception.class)
+        public ProblemDetail handleGeneric(Exception ex) {
+                ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                                HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Ocorreu um erro interno inesperado. Tente novamente mais tarde.");
+                problem.setTitle("Erro Interno");
+                problem.setType(URI.create("https://nexus-wms.com/errors/internal"));
+                problem.setProperty(TIMESTAMP_KEY, Instant.now());
+                return problem;
+        }
 }

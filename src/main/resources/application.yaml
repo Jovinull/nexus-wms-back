@@ -1,3 +1,10 @@
 spring:
   application:
     name: Nexus WMS
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  mvc:
+    problemdetails:
+      enabled: true

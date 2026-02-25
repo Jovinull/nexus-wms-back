@@ -66,10 +66,24 @@ O Spring Boot vai automaticamente:
 3. **Validar o mapeamento** entidade↔tabela (`ddl-auto: validate`)
 4. **Iniciar o servidor** na porta `8080`
 
-### 3. Verifique
-- **API:** http://localhost:8080
-- **Swagger UI:** Acesso em http://localhost:8080/swagger-ui.html (Nota: erros de importação na IDE relacionados ao pacote `io.swagger` podem ser "falsos positivos" de sincronização. Se o projeto compilar, o Swagger estará funcionado).
-- **Banco:** `localhost:5432` | DB: `nexus_wms` | User: `nexus` | Senha: `nexus123`
+### 3. Acesse e Teste a API (Swagger)
+A forma mais fácil de interagir com o código como usuário/cliente da API é pelo **Swagger UI**, uma interface visual de documentação gerada automaticamente.
+
+1. **Garanta que a aplicação iniciou:** Rode `.\gradlew.bat bootRun` no terminal.
+2. **Abra no navegador:** http://localhost:8080/swagger-ui.html
+3. **Faça o Login:**
+   - Procure e abra a rota `POST /api/auth/login` no Swagger.
+   - Clique no botão "Try it out" e altere o JSON para enviar `email: "admin@nexus.com"` e `password: "admin123"` (os usuários padrão criados pela aplicação).
+   - Clique em "Execute" e copie o `token` longo que aparecer na caixa de resposta.
+4. **Liberando as rotas bloqueadas:**
+   - Suba até o topo da página do Swagger e clique no botão verde com um cadeado **"Authorize"**.
+   - Digite a palavra `Bearer ` + dê um espaço + e cole o seu token (ex: `Bearer eyJhb...`). 
+   - Clique novamente no botão verde Authorize dentro do modal.
+   - Pronto! Agora a aplicação sabe quem você é e você pode testar todas as rotas de Categoria, Produto, etc.
+
+> 💡 **Nota sobre falsos erros na IDE:** Ás vezes a sua IDE (tipo VS Code) vai mostrar uma linha vermelha no import de arquivos do Swagger (como o `io.swagger.v3...`). Se a aplicação rodar normal no terminal, é apenas a IDE que está "lenta" ou "atrasada" para ler a biblioteca do cache. Você pode apenas ignorar.
+
+- **Banco de Dados (para os curiosos acessarem pelo dbeaver/pgadmin):** `localhost:5432` | DB: `nexus_wms` | User: `nexus` | Senha: `nexus123`
 
 ---
 
@@ -216,38 +230,48 @@ SELECT * FROM flyway_schema_history ORDER BY installed_rank;
 ### Gradle
 
 ```bash
-# Limpar build anterior
+# Limpar build anterior (apaga pasta de compilação velha)
 .\gradlew.bat clean
 
-# Baixar e atualizar dependências (refresh nas dependências)
-.\gradlew.bat build --refresh-dependencies
-# Ou pode-se clicar no "Reload All Gradle Projects" nativo da IDE
-
-# Ver todas as dependências
-.\gradlew.bat dependencies
-
-# Ver tasks disponíveis
-.\gradlew.bat tasks
-
-# Limpar + Build completo
+# Limpa e compila tudo do zero (Clean + Build completo)
 .\gradlew.bat clean build
+
+# Ver todas as dependências do projeto
+.\gradlew.bat dependencies
 ```
 
-### Estruturação Docker (Deployment)
+### 🧰 Resolução de Problemas (Troubleshooting)
 
-Para subir apenas o PostgreSQL com Docker (Ideal para desenvolvimento local):
+**O Problema (Erros Fantasmas na IDE):** 
+A sua IDE VS Code ou IntelliJ está cheia de erros vermelhos do nada (como pacote `não encontrado` ou `cannot resolve symbol`), ou as dependências que nós acabamos de baixar não estão sendo carregadas, mesmo o código estando completamente correto e compilando de boa pelo terminal.
+
+**A Solução (Forçar Atualização de Dependências):**  
+Existe um comando que força o Gradle a dizer: *"Ignore tudo o que você acha que já tem na memória, conecte-se na internet, baixe as bibliotecas originais nas versões corretas de novo e refaça a sincronização dos arquivos localmente"*.  
+
+Para forçar o sistema a limpar seu cache corrompido ou sincronizar os arquivos, rode:
 ```bash
-# Subir só o PostgreSQL via compose.yaml
-docker compose up -d
+.\gradlew.bat build --refresh-dependencies
 ```
+*Dica:* Após rodar o comando acima, a pasta do gradle no projeto vai estar atualizada. Se a IDE persistir visualmente no erro, você precisará fechar e abri-la ou usar a função da IDE (botãozinho na interface) chamado "Reload All Gradle Projects".
 
-Caso no futuro exista a necessidade de transformar a API do Spring Boot em um contêiner (para enviar a API inteira para nuvem/Docker):
+### 🐳 Estruturação Docker (Deployment para Produção)
+
+Para rodar no seu computador (ambiente de Desenvolvimento), nós já usamos o `docker compose` em conjunto do Spring Boot para iniciar atomaticamente o PostgreSQL na sua máquina. Sendo ótimo para desenvolver mais rápido.
+
+Porém, quando o projeto estiver pronto e você quiser colocá-lo no ar e hospedá-lo (AWS, Google Cloud, DigitalOcean, etc), você não enviará o seu código fonte. Você precisará empacotar o Java, as bibliotecas do projeto, o código compilado e o sistema Linux em um **"caixote isolado"**, que nós chamamos de **Imagem Docker**. A genialidade é que o Spring Boot já faz isso inteiramente para você através de uma tecnologia oficial chamada **Buildpacks**.
+
+**Como funciona o poderoso comando `bootBuildImage`:**
+Quando você aciona o gradle com esse comando, o Spring entra em modo de arquiteto. Ele analisa o seu código, descobre que nós usamos Java 25, vai até a nuvem, baixa para sua máquina e extrai um sistema operacional Linux mínimo (só o estritamente essencial para poupar recurso). Ele então instala o Java limpo nele e coloca seu projeto lá dentro de forma mágica, gerando na sua máquina uma "Imagem de Computador Virtual pronta com seu APP".
+
+**Como empacotar a aplicação final para a Nuvem na vida real:**
+1. Apenas verifique se o **Docker Desktop** está aberto e rodando em sua barra de tarefas/Windows.
+2. Pare o seu projeto, e em nosso terminal, rode:
 ```bash
-# Empacotar em JAR
-.\gradlew.bat bootJar
-# Gerar a imagem do Spring Boot (precisa de Docker em execução)
+# Manda o Spring empacotar nossa aplicação final numa imagem Docker:
 .\gradlew.bat bootBuildImage
 ```
+3. O empacotamento demorará uma média de 1 a 3 minutos apenas.
+4. Quando finalizar, se você abrir o terminal e rodar `docker images`, verá a nossa nova aplicação compactada e listada (ex: `nexus-wms-back:x.x.x`). A partir daí, sua API "está numa sacola portátil". Qualquer pessoa e provedor que instale ela e a execute, fará a aplicação e suas rotas rodarem integralmente, seja na India, na America, sem precisar instalar linguagens de código na máquina de hospedagem local.
 
 ### Docker / Banco de Dados
 

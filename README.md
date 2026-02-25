@@ -68,6 +68,7 @@ O Spring Boot vai automaticamente:
 
 ### 3. Verifique
 - **API:** http://localhost:8080
+- **Swagger UI:** Acesso em http://localhost:8080/swagger-ui.html (Nota: erros de importação na IDE relacionados ao pacote `io.swagger` podem ser "falsos positivos" de sincronização. Se o projeto compilar, o Swagger estará funcionado).
 - **Banco:** `localhost:5432` | DB: `nexus_wms` | User: `nexus` | Senha: `nexus123`
 
 ---
@@ -218,6 +219,10 @@ SELECT * FROM flyway_schema_history ORDER BY installed_rank;
 # Limpar build anterior
 .\gradlew.bat clean
 
+# Baixar e atualizar dependências (refresh nas dependências)
+.\gradlew.bat build --refresh-dependencies
+# Ou pode-se clicar no "Reload All Gradle Projects" nativo da IDE
+
 # Ver todas as dependências
 .\gradlew.bat dependencies
 
@@ -226,6 +231,22 @@ SELECT * FROM flyway_schema_history ORDER BY installed_rank;
 
 # Limpar + Build completo
 .\gradlew.bat clean build
+```
+
+### Estruturação Docker (Deployment)
+
+Para subir apenas o PostgreSQL com Docker (Ideal para desenvolvimento local):
+```bash
+# Subir só o PostgreSQL via compose.yaml
+docker compose up -d
+```
+
+Caso no futuro exista a necessidade de transformar a API do Spring Boot em um contêiner (para enviar a API inteira para nuvem/Docker):
+```bash
+# Empacotar em JAR
+.\gradlew.bat bootJar
+# Gerar a imagem do Spring Boot (precisa de Docker em execução)
+.\gradlew.bat bootBuildImage
 ```
 
 ### Docker / Banco de Dados

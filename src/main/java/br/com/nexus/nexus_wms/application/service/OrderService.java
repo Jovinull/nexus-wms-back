@@ -9,10 +9,8 @@ import br.com.nexus.nexus_wms.domain.entity.order.Order;
 import br.com.nexus.nexus_wms.domain.entity.order.OrderItem;
 import br.com.nexus.nexus_wms.domain.entity.wms.Product;
 import br.com.nexus.nexus_wms.domain.enums.OrderStatus;
-import br.com.nexus.nexus_wms.domain.repository.OrderItemRepository;
 import br.com.nexus.nexus_wms.domain.repository.OrderRepository;
 import br.com.nexus.nexus_wms.domain.repository.ProductRepository;
-import br.com.nexus.nexus_wms.infrastructure.exception.BusinessException;
 import br.com.nexus.nexus_wms.infrastructure.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,19 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
 
-    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
-            ProductRepository productRepository) {
+    public OrderService(OrderRepository orderRepository, ProductRepository productRepository) {
         this.orderRepository = orderRepository;
-        this.orderItemRepository = orderItemRepository;
         this.productRepository = productRepository;
     }
 
@@ -120,7 +114,7 @@ public class OrderService {
                     item.getQuantity(),
                     item.getUnitPrice(),
                     subTotal);
-        }).collect(Collectors.toList());
+        }).toList();
 
         return new OrderResponseDTO(
                 order.getId(),

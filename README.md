@@ -214,7 +214,16 @@ SELECT * FROM flyway_schema_history ORDER BY installed_rank;
 .\gradlew.bat bootJar
 ```
 
-### Testes
+### 🧪 Testes e Qualidade (Mockito / JUnit)
+
+A arquitetura de testes de Serviço do projeto valida de forma rigorosa as "Regras de Ouro" das transações:
+
+- `StockServiceTest`: Verifica **Entrada e Saídas** com Mockito interceptando repositórios.
+  - Verifica adição de estoque existente vs novos locais.
+  - Assegura que tentar retirar mais estoque que o disponível lança o erro apropriado validando quantidade exata.
+- `OrderServiceTest`: Funciona orientando as **Listas de Separação**.
+  - Garante que a aplicação vasculhe e extraia precisamente de localizações diferentes o número de produtos comprados sem "estourar" o lote.
+  - Verifica o avanço da Máquina de Estado do pedido (`CRIADO` -> `EM_SEPARACAO`).
 
 ```bash
 # Rodar todos os testes (usa Testcontainers — precisa de Docker)
@@ -223,8 +232,8 @@ SELECT * FROM flyway_schema_history ORDER BY installed_rank;
 # Rodar testes com output detalhado
 .\gradlew.bat test --info
 
-# Rodar um teste específico
-.\gradlew.bat test --tests "br.com.nexus.nexus_wms.NexusWmsApplicationTests"
+# Ver relatório visual (após rodar) abra o arquivo gerado:
+# build/reports/tests/test/index.html
 ```
 
 ### Gradle

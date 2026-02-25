@@ -57,6 +57,8 @@ public class SecurityConfig {
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers("/api/auth/**").permitAll() // Libera rotas de auth (login, refresh token)
                             .requestMatchers("/actuator/**").permitAll() // Libera métricas e health checks
+                            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll() // Libera
+                                                                                                                  // Swagger
                             .anyRequest().authenticated() // Qualquer outra requisição precisa do token JWT
                     )
                     .oauth2ResourceServer(oauth2 -> oauth2

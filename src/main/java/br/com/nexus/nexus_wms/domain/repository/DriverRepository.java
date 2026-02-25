@@ -5,11 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface DriverRepository extends JpaRepository<Driver, UUID> {
-    Optional<Driver> findByCnhNumber(String cnhNumber);
-
-    Optional<Driver> findByCpf(String cpf);
+public interface DriverRepository extends JpaRepository<Driver, Long> {
+    Optional<Driver> findByCnh(String cnh);
 }

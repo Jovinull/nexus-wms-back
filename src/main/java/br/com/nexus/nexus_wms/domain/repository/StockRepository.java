@@ -5,11 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
+
 
 @Repository
-public interface StockRepository extends JpaRepository<Stock, UUID> {
-    List<Stock> findByProductId(UUID productId);
+public interface StockRepository extends JpaRepository<Stock, Long> {
+    List<Stock> findByProductId(Long productId);
 
-    List<Stock> findByLocationId(UUID locationId);
+    List<Stock> findByLocationId(Long locationId);
 }

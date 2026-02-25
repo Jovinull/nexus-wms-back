@@ -5,11 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
+
 
 @Repository
-public interface ShipmentOrderRepository extends JpaRepository<ShipmentOrder, UUID> {
-    List<ShipmentOrder> findByShipmentId(UUID shipmentId);
+public interface ShipmentOrderRepository extends JpaRepository<ShipmentOrder, Long> {
+    List<ShipmentOrder> findByShipmentId(Long shipmentId);
 
-    List<ShipmentOrder> findByOrderId(UUID orderId);
+    List<ShipmentOrder> findByOrderId(Long orderId);
 }

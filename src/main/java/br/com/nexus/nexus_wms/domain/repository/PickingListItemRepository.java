@@ -5,9 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
-public interface PickingListItemRepository extends JpaRepository<PickingListItem, UUID> {
-    List<PickingListItem> findByPickingListIdOrderBySequenceOrderAsc(UUID pickingListId);
+public interface PickingListItemRepository extends JpaRepository<PickingListItem, Long> {
+    List<PickingListItem> findByPickingListIdOrderByPickSequenceAsc(Long pickingListId);
 }

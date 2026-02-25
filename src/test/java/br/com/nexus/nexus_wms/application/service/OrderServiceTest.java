@@ -1,10 +1,8 @@
 package br.com.nexus.nexus_wms.application.service;
 
-import br.com.nexus.nexus_wms.application.dto.order.OrderRequestDTO;
 import br.com.nexus.nexus_wms.domain.entity.order.Order;
 import br.com.nexus.nexus_wms.domain.entity.order.OrderItem;
 import br.com.nexus.nexus_wms.domain.entity.order.PickingList;
-import br.com.nexus.nexus_wms.domain.entity.order.PickingListItem;
 import br.com.nexus.nexus_wms.domain.entity.wms.Product;
 import br.com.nexus.nexus_wms.domain.entity.wms.Stock;
 import br.com.nexus.nexus_wms.domain.enums.OrderStatus;
@@ -14,7 +12,6 @@ import br.com.nexus.nexus_wms.domain.repository.PickingListRepository;
 import br.com.nexus.nexus_wms.domain.repository.ProductRepository;
 import br.com.nexus.nexus_wms.domain.repository.StockRepository;
 import br.com.nexus.nexus_wms.infrastructure.exception.BusinessException;
-import br.com.nexus.nexus_wms.infrastructure.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,13 +21,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,7 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class OrderServiceTest {
+class OrderServiceTest {
 
     @Mock
     private OrderRepository orderRepository;

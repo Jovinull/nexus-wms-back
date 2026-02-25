@@ -10,8 +10,15 @@ import br.com.nexus.nexus_wms.domain.entity.order.OrderItem;
 import br.com.nexus.nexus_wms.domain.entity.wms.Product;
 import br.com.nexus.nexus_wms.domain.enums.OrderStatus;
 import br.com.nexus.nexus_wms.domain.repository.OrderRepository;
+import br.com.nexus.nexus_wms.domain.repository.PickingListRepository;
 import br.com.nexus.nexus_wms.domain.repository.ProductRepository;
+import br.com.nexus.nexus_wms.domain.repository.StockRepository;
+import br.com.nexus.nexus_wms.infrastructure.exception.BusinessException;
 import br.com.nexus.nexus_wms.infrastructure.exception.ResourceNotFoundException;
+import br.com.nexus.nexus_wms.domain.entity.order.PickingList;
+import br.com.nexus.nexus_wms.domain.entity.order.PickingListItem;
+import br.com.nexus.nexus_wms.domain.entity.wms.Stock;
+import br.com.nexus.nexus_wms.domain.enums.PickingListStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,10 +33,15 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final PickingListRepository pickingListRepository;
+    private final StockRepository stockRepository;
 
-    public OrderService(OrderRepository orderRepository, ProductRepository productRepository) {
+    public OrderService(OrderRepository orderRepository, ProductRepository productRepository,
+            PickingListRepository pickingListRepository, StockRepository stockRepository) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
+        this.pickingListRepository = pickingListRepository;
+        this.stockRepository = stockRepository;
     }
 
     @Transactional
@@ -128,5 +140,57 @@ public class OrderService {
                 order.getCreatedAt(),
                 order.getUpdatedAt(),
                 itemDTOs);
+    }
+
+    @Transactional
+    public void generatePickingList(Long orderId) {
+        Order order = getOrderOrThrow(orderId);
+
+        if (order.getStatus() != OrderStatus.CRIADO) {
+            throw new BusinessException("O pedido não está no status CRIADO para gerar lista de separação.");
+        }
+
+        PickingList pickingList = new PickingList();
+        pickingList.setOrder(order);
+        pickingList.setStatus(PickingListStatus.PENDENTE);
+
+        int sequence = 1;
+        for (OrderItem item : order.getItems()) {
+            List<Stock> availableStocks = stockRepository.findByProductId(item.getProduct().getId());
+
+            // Lógica simples de WMS: Varre os estoques disponíveis até suprir a quantidade
+            // do pedido
+            int remainingToPick = item.getQuantity();
+
+            for (Stock stock : availableStocks) {
+                if (remainingToPick <= 0)
+                    break;
+
+                if (stock.getQuantity() > 0) {
+                    int quantityToTakeFromThisStock = Math.min(stock.getQuantity(), remainingToPick);
+
+                    PickingListItem pickingListItem = new PickingListItem();
+                    pickingListItem.setPickingList(pickingList);
+                    pickingListItem.setProduct(item.getProduct());
+                    pickingListItem.setStock(stock);
+                    pickingListItem.setQuantity(quantityToTakeFromThisStock);
+                    pickingListItem.setPickSequence(sequence++);
+
+                    pickingList.getItems().add(pickingListItem);
+
+                    remainingToPick -= quantityToTakeFromThisStock;
+                }
+            }
+
+            if (remainingToPick > 0) {
+                throw new BusinessException("Estoque insuficiente para o produto: " + item.getProduct().getName());
+            }
+        }
+
+        pickingListRepository.save(pickingList);
+
+        // Atualiza a máquina de estado do pedido
+        order.setStatus(OrderStatus.EM_SEPARACAO);
+        orderRepository.save(order);
     }
 }

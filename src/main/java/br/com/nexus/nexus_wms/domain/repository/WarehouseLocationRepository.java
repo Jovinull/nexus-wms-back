@@ -8,6 +8,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface WarehouseLocationRepository extends JpaRepository<WarehouseLocation, UUID> {
-    Optional<WarehouseLocation> findByAisleAndRackAndShelfAndBin(String aisle, String rack, String shelf, String bin);
+public interface WarehouseLocationRepository extends JpaRepository<WarehouseLocation, Long> {
+    Optional<WarehouseLocation> findByAisleAndShelfAndLevelAndBin(String aisle, String shelf, String level, String bin);
 }

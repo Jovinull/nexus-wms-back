@@ -97,6 +97,30 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 return problem;
         }
 
+        // ---- Business Exceptions ------------------------------------------------
+
+        @ExceptionHandler(ResourceNotFoundException.class)
+        public ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
+                ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                                HttpStatus.NOT_FOUND,
+                                ex.getMessage());
+                problem.setTitle("Recurso não encontrado");
+                problem.setType(URI.create("https://nexus-wms.com/errors/not-found"));
+                problem.setProperty(TIMESTAMP_KEY, Instant.now());
+                return problem;
+        }
+
+        @ExceptionHandler(BusinessException.class)
+        public ProblemDetail handleBusinessException(BusinessException ex) {
+                ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                                HttpStatus.BAD_REQUEST,
+                                ex.getMessage());
+                problem.setTitle("Erro de Negócio");
+                problem.setType(URI.create("https://nexus-wms.com/errors/business-rule"));
+                problem.setProperty(TIMESTAMP_KEY, Instant.now());
+                return problem;
+        }
+
         // ---- Catch-all for unexpected errors ------------------------------------
 
         @ExceptionHandler(Exception.class)

@@ -40,14 +40,14 @@ public class ShipmentService {
         Vehicle vehicle = vehicleRepository.findById(dto.getVehicleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Veículo não encontrado."));
 
-        if (!vehicle.getActive()) {
+        if (Boolean.FALSE.equals(vehicle.getActive())) {
             throw new BusinessException("Veículo selecionado está inativo.");
         }
 
         Driver driver = driverRepository.findById(dto.getDriverId())
                 .orElseThrow(() -> new ResourceNotFoundException("Motorista não encontrado."));
 
-        if (!driver.getActive()) {
+        if (Boolean.FALSE.equals(driver.getActive())) {
             throw new BusinessException("Motorista selecionado está inativo.");
         }
 

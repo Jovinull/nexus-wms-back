@@ -1,6 +1,7 @@
 package br.com.nexus.nexus_wms.modules.iam.api.dto;
 
 import br.com.nexus.nexus_wms.modules.iam.domain.entity.UserRole;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,5 +19,8 @@ public class LoginResponseDTO {
     private Long expiresIn;
     private String name;
     private UserRole role;
+
+    @JsonIgnore
+    private String refreshToken;
 
 }

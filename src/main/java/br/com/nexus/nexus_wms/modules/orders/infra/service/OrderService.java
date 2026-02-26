@@ -1,0 +1,196 @@
+package br.com.nexus.nexus_wms.modules.orders.infra.service;
+
+import br.com.nexus.nexus_wms.modules.orders.api.dto.OrderItemRequestDTO;
+import br.com.nexus.nexus_wms.modules.orders.api.dto.OrderItemResponseDTO;
+import br.com.nexus.nexus_wms.modules.orders.api.dto.OrderRequestDTO;
+import br.com.nexus.nexus_wms.modules.orders.api.dto.OrderResponseDTO;
+import br.com.nexus.nexus_wms.modules.orders.api.dto.OrderStatusUpdateDTO;
+import br.com.nexus.nexus_wms.modules.orders.domain.entity.Order;
+import br.com.nexus.nexus_wms.modules.orders.domain.entity.OrderItem;
+import br.com.nexus.nexus_wms.modules.orders.domain.entity.OrderStatus;
+import br.com.nexus.nexus_wms.modules.orders.domain.entity.PickingList;
+import br.com.nexus.nexus_wms.modules.orders.domain.entity.PickingListItem;
+import br.com.nexus.nexus_wms.modules.orders.domain.entity.PickingListStatus;
+import br.com.nexus.nexus_wms.modules.orders.domain.repository.OrderRepository;
+import br.com.nexus.nexus_wms.modules.orders.domain.repository.PickingListRepository;
+import br.com.nexus.nexus_wms.modules.wms.domain.entity.Product;
+import br.com.nexus.nexus_wms.modules.wms.domain.entity.Stock;
+import br.com.nexus.nexus_wms.modules.wms.domain.repository.ProductRepository;
+import br.com.nexus.nexus_wms.modules.wms.domain.repository.StockRepository;
+import br.com.nexus.nexus_wms.core.exception.BusinessException;
+import br.com.nexus.nexus_wms.core.exception.ResourceNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
+    private final PickingListRepository pickingListRepository;
+    private final StockRepository stockRepository;
+
+    public OrderService(OrderRepository orderRepository, ProductRepository productRepository,
+            PickingListRepository pickingListRepository, StockRepository stockRepository) {
+        this.orderRepository = orderRepository;
+        this.productRepository = productRepository;
+        this.pickingListRepository = pickingListRepository;
+        this.stockRepository = stockRepository;
+    }
+
+    @Transactional
+    public OrderResponseDTO create(OrderRequestDTO dto) {
+        Order order = new Order();
+        order.setCustomerName(dto.getCustomerName());
+        order.setCustomerAddress(dto.getCustomerAddress());
+        order.setCustomerPhone(dto.getCustomerPhone());
+        order.setNotes(dto.getNotes());
+        order.setStatus(OrderStatus.CRIADO);
+
+        BigDecimal totalValue = BigDecimal.ZERO;
+        List<OrderItem> items = new ArrayList<>();
+
+        for (OrderItemRequestDTO itemDto : dto.getItems()) {
+            Product product = productRepository.findById(itemDto.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Produto não encontrado para o ID: " + itemDto.getProductId()));
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(itemDto.getQuantity());
+
+            // Snapshot do preço no momento da criação do pedido
+            orderItem.setUnitPrice(product.getUnitPrice());
+
+            BigDecimal subTotal = product.getUnitPrice().multiply(new BigDecimal(itemDto.getQuantity()));
+            totalValue = totalValue.add(subTotal);
+
+            items.add(orderItem);
+        }
+
+        order.setTotalValue(totalValue);
+        order.setItems(items);
+
+        order = orderRepository.save(order);
+        // O JPA Cascading salva os orderItems automaticamente por causa de
+        // CascadeType.ALL
+
+        return toResponseDTO(order);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponseDTO> findAll(Pageable pageable) {
+        return orderRepository.findAll(pageable).map(this::toResponseDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponseDTO findById(Long id) {
+        Order order = getOrderOrThrow(id);
+        return toResponseDTO(order);
+    }
+
+    @Transactional
+    public OrderResponseDTO updateStatus(Long id, OrderStatusUpdateDTO dto) {
+        Order order = getOrderOrThrow(id);
+
+        // Regras de negócio podem ser adicionadas aqui
+        // Ex: Não permitir voltar status, ou não permitir transição inválida da máquina
+        // de estado.
+
+        order.setStatus(dto.getStatus());
+        order = orderRepository.save(order);
+
+        return toResponseDTO(order);
+    }
+
+    private Order getOrderOrThrow(Long id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado para o ID: " + id));
+    }
+
+    private OrderResponseDTO toResponseDTO(Order order) {
+        List<OrderItemResponseDTO> itemDTOs = order.getItems().stream().map(item -> {
+            BigDecimal subTotal = item.getUnitPrice().multiply(new BigDecimal(item.getQuantity()));
+            return new OrderItemResponseDTO(
+                    item.getId(),
+                    item.getProduct().getId(),
+                    item.getProduct().getSku(),
+                    item.getProduct().getName(),
+                    item.getQuantity(),
+                    item.getUnitPrice(),
+                    subTotal);
+        }).toList();
+
+        return new OrderResponseDTO(
+                order.getId(),
+                order.getCustomerName(),
+                order.getCustomerAddress(),
+                order.getCustomerPhone(),
+                order.getTotalValue(),
+                order.getStatus(),
+                order.getNotes(),
+                order.getVersion(),
+                order.getCreatedAt(),
+                order.getUpdatedAt(),
+                itemDTOs);
+    }
+
+    @Transactional
+    public void generatePickingList(Long orderId) {
+        Order order = getOrderOrThrow(orderId);
+
+        if (order.getStatus() != OrderStatus.CRIADO) {
+            throw new BusinessException("O pedido não está no status CRIADO para gerar lista de separação.");
+        }
+
+        PickingList pickingList = new PickingList();
+        pickingList.setOrder(order);
+        pickingList.setStatus(PickingListStatus.PENDENTE);
+
+        int sequence = 1;
+        for (OrderItem item : order.getItems()) {
+            List<Stock> availableStocks = stockRepository.findByProductId(item.getProduct().getId());
+
+            // Lógica simples de WMS: Varre os estoques disponíveis até suprir a quantidade
+            // do pedido
+            int remainingToPick = item.getQuantity();
+
+            for (Stock stock : availableStocks) {
+                if (remainingToPick <= 0)
+                    break;
+
+                if (stock.getQuantity() > 0) {
+                    int quantityToTakeFromThisStock = Math.min(stock.getQuantity(), remainingToPick);
+
+                    PickingListItem pickingListItem = new PickingListItem();
+                    pickingListItem.setPickingList(pickingList);
+                    pickingListItem.setProduct(item.getProduct());
+                    pickingListItem.setStock(stock);
+                    pickingListItem.setQuantity(quantityToTakeFromThisStock);
+                    pickingListItem.setPickSequence(sequence++);
+
+                    pickingList.getItems().add(pickingListItem);
+
+                    remainingToPick -= quantityToTakeFromThisStock;
+                }
+            }
+
+            if (remainingToPick > 0) {
+                throw new BusinessException("Estoque insuficiente para o produto: " + item.getProduct().getName());
+            }
+        }
+
+        pickingListRepository.save(pickingList);
+
+        // Atualiza a máquina de estado do pedido
+        order.setStatus(OrderStatus.EM_SEPARACAO);
+        orderRepository.save(order);
+    }
+}

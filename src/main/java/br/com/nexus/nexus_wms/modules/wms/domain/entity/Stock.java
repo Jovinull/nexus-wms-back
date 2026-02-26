@@ -3,6 +3,7 @@ package br.com.nexus.nexus_wms.modules.wms.domain.entity;
 import br.com.nexus.nexus_wms.core.domain.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@EntityListeners(StockAuditListener.class)
 public class Stock extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
